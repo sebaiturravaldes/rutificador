@@ -1,38 +1,60 @@
 #!/usr/bin/python
 
 import urllib, urllib2
+import cookielib
 import json
 
+url     = 'https://chile.rutificador.com'
+url_api = url + '/get_generic_ajax/'
+
+def getToken():
+    cookie_jar = cookielib.CookieJar()
+    opener     = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie_jar))
+
+    urllib2.install_opener(opener)
+
+    req = urllib2.Request(url)
+    urllib2.urlopen(req)
+
+    data = dict((cookie.name, cookie.value) for cookie in cookie_jar)
+
+    token = data['csrftoken']
+
+    return token
+
 def rutificador(nombre):
-   url    = 'http://chile.rutificador.com/get_generic_ajax/'
-   values = {'entrada':nombre,'csrfmiddlewaretoken':'ioAfP80sm4cafdC8qgT9OoeCFb53KXGh' }
-   
-   data   = urllib.urlencode(values)
-   req    = urllib2.Request(url,data)
 
-   req.add_header("Content-type", "application/x-www-form-urlencoded; charset=UTF-8")
-   req.add_header("Content-Length", str(len(data)))
-   req.add_header("Cookie", "csrftoken=ioAfP80sm4cafdC8qgT9OoeCFb53KXGh; _ga=GA1.2.947659569.1478526923")
+    token = getToken()
 
-   response = urllib2.urlopen(req)
+    #Seteamos los valores que se enviaran por POST
+    values  = {'entrada': nombre, 'csrfmiddlewaretoken': token}
 
-   #x='{"status": "success", "value": [{"dv": "0", "name": "ITURRA VALDES SEBASTIAN ANDRES", "rut": 18765525, "wname": "iturra-valdes-sebastian-andres"}]}'
-   x = response.read()    
-   y = json.loads(x) #convierte la respuesta a objetos json
-   
-   print "result status: " + y['status'] #imprime la respuesta de la web (success, error)
-  
-   if y['status'] == "success":
-      print x
-   else:
-      print("status error.")
+    data = urllib.urlencode(values)
+    req  = urllib2.Request(url_api, data)
+
+    #req.add_header("Content-type", "application/x-www-form-urlencoded; charset=UTF-8")
+    #req.add_header("Content-Length", str(len(data)))
+    req.add_header("Cookie", "csrftoken=" + token)
+    req.add_header('referer', url)
+
+    response = urllib2.urlopen(req)
+
+    # x='{"status": "success", "value": [{"dv": "0", "name": "ITURRA VALDES SEBASTIAN ANDRES", "rut": 18765525, "wname": "iturra-valdes-sebastian-andres"}]}'
+    x = response.read()
     
+    # Convierte la respuesta a objetos json
+    y = json.loads(x)  
 
-def main():   
-   rutificador('sebastian andres iturra valdes')
-   #rutificador('18765525-0')
-   
-   print 'Fin.'
+    #print "result status: " + y['status']  # imprime la respuesta de la web (success, error)
+
+    if y['status'] == "success":
+        print x
+    else:
+        print y
+
+
+def main():
+    rutificador('sebastian andres iturra valdes')
 
 if __name__ == '__main__':
-	main()
+    main()
